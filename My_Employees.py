@@ -6,7 +6,6 @@ from PIL import Image
 from PyQt5.QtGui import QFont, QPixmap
 from PyQt5.QtWidgets import *
 
-##test
 con = sqlite3.connect("employees.db")
 cur = con.cursor()
 defaultImg = "images/person.png"
