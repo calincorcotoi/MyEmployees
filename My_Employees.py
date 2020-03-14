@@ -140,7 +140,7 @@ class Main(QWidget):
                     query = "DELETE FROM employees WHERE id=?"
                     cur.execute(query, (id,))
                     con.commit()
-                    QMessageBox.information(self, "Infi!!", "Person has been deleted")
+                    QMessageBox.information(self, "Info!!", "Person has been deleted")
                     self.close()
                     self.main = Main()
                 except:
@@ -153,7 +153,8 @@ class Main(QWidget):
             )
 
     def updateEmployee(self):
-        pass
+        self.uupdateEmployee = UpdateEmployee()
+        self.close()
 
 
 class AddEmployee(QWidget):
@@ -278,6 +279,12 @@ class AddEmployee(QWidget):
                 QMessageBox.warning(self, "Warning", "Person has not been added")
         else:
             QMessageBox.warning(self, "Warning", "Fields can not be empty")
+
+
+class UpdateEmployee(AddEmployee):
+    def __init__(self):
+        super().__init__()
+        self.nameEntry.setText("AAAAAAAAA")
 
 
 def main():
