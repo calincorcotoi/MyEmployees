@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import *
 con = sqlite3.connect("employees.db")
 cur = con.cursor()
 defaultImg = "images/person.png"
+person_id = None
 
 
 class Main(QWidget):
@@ -153,8 +154,163 @@ class Main(QWidget):
             )
 
     def updateEmployee(self):
-        self.uupdateEmployee = UpdateEmployee()
-        self.close()
+        global person_id
+        if self.employeeList.selectedItems():
+            person = self.employeeList.currentItem().text()
+            person_id = person.split("-")[0]
+            print(person)
+            self.updateWindow = UpdateEmployee()
+            self.close()
+        else:
+            QMessageBox.information(
+                self, "Warning!!", "Please select a person to update"
+            )
+
+
+class UpdateEmployee(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Update Employee")
+        self.setGeometry(450, 150, 350, 600)
+        self.UI()
+        self.show()
+
+    def UI(self):
+        self.getPerson()
+        self.mainDesing()
+        self.layouts()
+
+    def closeEvent(self, event):
+        self.main = Main()
+
+    def getPerson(self):
+        global person_id
+        query = "SELECT * FROM employees WHERE id=?"
+        employee = cur.execute(query, (person_id,)).fetchone()
+        print(employee)
+        self.name = employee[1]
+        self.surname = employee[2]
+        self.phone = employee[3]
+        self.email = employee[4]
+        self.image = employee[5]
+        self.address = employee[6]
+
+    def mainDesing(self):
+        #####################Top Layout widgets############################
+        self.setStyleSheet("background-color:white;font-size:14pt;font-family:Times")
+
+        self.title = QLabel("Update Person")
+
+        # METODA PENTRU A SCHIMBA FONTUL LA TEXT FARA QFONT
+        self.title.setStyleSheet(
+            "font-size:24pt;font-family:Arial Bold;background-color:red"
+        )
+
+        self.imgAdd = QLabel()
+        self.imgAdd.setPixmap(QPixmap("images/{}".format(self.image)))
+
+        #####################Bottom Layout widgets############################
+        self.nameLbl = QLabel("Name :")
+        self.nameEntry = QLineEdit()
+        self.nameEntry.setPlaceholderText("Enter Employee Name")
+        self.nameEntry.setText(self.name)
+
+        self.surnameLbl = QLabel("Surname :")
+        self.surnameEntry = QLineEdit()
+        self.surnameEntry.setPlaceholderText("Enter Employee Surname")
+        self.surnameEntry.setText(self.surname)
+
+        self.phoneLbl = QLabel("Phone :")
+        self.phoneEntry = QLineEdit()
+        self.phoneEntry.setPlaceholderText("Enter Employee Phone")
+        self.phoneEntry.setText(self.phone)
+
+        self.emailLbl = QLabel("Email :")
+        self.emailEntry = QLineEdit()
+        self.emailEntry.setPlaceholderText("Enter Employee Email")
+        self.emailEntry.setText(self.email)
+
+        self.imgLbl = QLabel("Picture :")
+        self.imgButton = QPushButton("Browse")
+        self.imgButton.setStyleSheet("background-color:orange;font-size:10pt")
+        self.imgButton.clicked.connect(self.uploadImage)
+
+        self.addressLbl = QLabel("Address :")
+        self.addressEditor = QTextEdit()
+        self.addressEditor.setText(self.address)
+
+        self.updateButton = QPushButton("Update")
+        self.updateButton.setStyleSheet("background-color:orange;font-size:10pt")
+        self.updateButton.clicked.connect(self.updateEmployee)
+
+    def layouts(self):
+        #################creating main layout################
+        self.mainLayout = QVBoxLayout()
+        self.topLayout = QVBoxLayout()
+        self.bottomLayout = QFormLayout()
+
+        ###################adding child layouts to main layout########
+        self.mainLayout.addLayout(self.topLayout)
+        self.mainLayout.addLayout(self.bottomLayout)
+
+        ###################adding widgets to layouts#################
+        ##TOP Layout
+        self.topLayout.addStretch()
+        self.topLayout.addWidget(self.title)
+        self.topLayout.addWidget(self.imgAdd)
+        self.topLayout.addStretch()
+        self.topLayout.setContentsMargins(110, 20, 10, 30)  # left,top,right,bottom
+        ##BOTTOM Layout
+        self.bottomLayout.addRow(self.nameLbl, self.nameEntry)
+        self.bottomLayout.addRow(self.surnameLbl, self.surnameEntry)
+        self.bottomLayout.addRow(self.phoneLbl, self.phoneEntry)
+        self.bottomLayout.addRow(self.emailLbl, self.emailEntry)
+        self.bottomLayout.addRow(self.imgLbl, self.imgButton)
+        self.bottomLayout.addRow(self.addressLbl, self.addressEditor)
+        self.bottomLayout.addRow(
+            "", self.updateButton
+        )  # "" SIMULEAZA CA SI CUM AR FI UN LABEL FARA NUME CA SA SE PUNA PE COL 2
+
+        #######################setting main layout for window#########
+        self.setLayout(self.mainLayout)
+
+    def uploadImage(self):
+        global defaultImg
+        size = (128, 128)
+        self.fileName, ok = QFileDialog.getOpenFileName(
+            self, "Upload Image", "", "Image Files (*.jpg *.png)"
+        )
+
+        if ok:
+            print(self.fileName)
+            defaultImg = os.path.basename(self.fileName)
+            img = Image.open(self.fileName)
+            img = img.resize(size)
+            img.save("Imagess/{}".format(defaultImg))
+
+    def updateEmployee(self):
+        global defaultImg
+        global person_id
+        name = self.nameEntry.text()
+        surname = self.surnameEntry.text()
+        phone = self.phoneEntry.text()
+        email = self.emailEntry.text()
+        img = defaultImg
+        address = self.addressEditor.toPlainText()
+        if name and surname and phone != "":
+            try:
+                query = "UPDATE employees set name =?, surname =?, phone =?, email =?, img =?, address =? WHERE id=?"
+                cur.execute(
+                    query, (name, surname, phone, email, img, address, person_id)
+                )
+                con.commit()
+                QMessageBox.information(self, "Success", "Person has been updated")
+                self.close()
+                self.main = Main()
+            except:
+                QMessageBox.warning(self, "Warning", "Person has not been updated")
+        else:
+            QMessageBox.warning(self, "Warning", "Fields can not be empty")
 
 
 class AddEmployee(QWidget):
@@ -279,12 +435,6 @@ class AddEmployee(QWidget):
                 QMessageBox.warning(self, "Warning", "Person has not been added")
         else:
             QMessageBox.warning(self, "Warning", "Fields can not be empty")
-
-
-class UpdateEmployee(AddEmployee):
-    def __init__(self):
-        super().__init__()
-        self.nameEntry.setText("AAAAAAAAA")
 
 
 def main():
